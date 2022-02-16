@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"math/rand"
 	"net/url"
+	"os"
 	"time"
 
+	"github.com/google/shlex"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
@@ -30,6 +33,7 @@ func main() {
 		logrus.Panicf("register: %v", err)
 	}
 	logrus.Infof("nickname: %v, ID: %v", nickname, id)
+	setID(id)
 
 	u := url.URL{Scheme: "ws", Host: *ADDR, Path: "/ws"}
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
@@ -41,6 +45,25 @@ func main() {
 	output := make(chan []byte)
 	done := make(chan struct{})
 	go readFromWS(c, output, done)
+
+	handleStdIn()
+}
+
+func handleStdIn() {
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		in := scanner.Text()
+		logrus.Infof("input: %v", in)
+
+		tokens, err := shlex.Split(in)
+		if err != nil {
+			logrus.Errorf("shlex: %v", err)
+			continue
+		}
+		if err = execAction(tokens...); err != nil {
+			logrus.Error(err)
+		}
+	}
 }
 
 func readFromWS(c *websocket.Conn, output chan []byte, done chan struct{}) {
