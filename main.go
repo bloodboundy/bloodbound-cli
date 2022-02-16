@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -36,7 +37,10 @@ func main() {
 	setID(id)
 
 	u := url.URL{Scheme: "ws", Host: *ADDR, Path: "/ws"}
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	logrus.Infof("url: %v", u.String())
+	c, _, err := websocket.DefaultDialer.Dial(
+		u.String(),
+		http.Header{"Authorization": []string{http.CanonicalHeaderKey(authHeader)}})
 	if err != nil {
 		logrus.Panicf("ws.dial: %v", err)
 	}
